@@ -1,0 +1,982 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Agenda & Interactive Digital Journal (Samsung Notes Style)</title>
+    
+    <!-- Google Fonts -->
+    <link href="https://fonts.googleapis.com/css2?family=Caveat:wght@600;700&family=Playfair+Display:ital,wght@0,600;0,700;1,400&family=Plus+Jakarta+Sans:wght@400;500;600;700&family=Kalam:wght@400;700&display=swap" rel="stylesheet">
+    <!-- Font Awesome Icons -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <!-- Library PageFlip (Flipbook Animation) -->
+    <script src="https://cdn.jsdelivr.net/npm/page-flip/dist/js/page-flip.browser.js"></script>
+    <!-- Library html2canvas & jsPDF (Export PNG & PDF) -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+
+    <style>
+        :root {
+            --bg-color: #f7f4eb;
+            --primary-dark: #222222;
+            --accent-red: #c02626;
+            --journal-teal: #2e6966;
+            --font-serif: 'Playfair Display', serif;
+            --font-handwrite: 'Caveat', cursive;
+            --font-sans: 'Plus Jakarta Sans', sans-serif;
+        }
+
+        * {
+            box-sizing: border-box;
+        }
+
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: var(--font-sans);
+            background-color: var(--bg-color);
+            background-image: repeating-linear-gradient(
+                var(--bg-color) 0px,
+                var(--bg-color) 24px,
+                #e5dfd3 25px
+            );
+            color: var(--primary-dark);
+            min-height: 100vh;
+            overflow-x: hidden;
+        }
+
+        /* Container Layout Web Agenda */
+        .container {
+            max-width: 900px;
+            margin: 0 auto;
+            padding: 40px 20px;
+        }
+
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            margin-bottom: 20px;
+        }
+
+        .title {
+            font-family: var(--font-serif);
+            font-size: 3rem;
+            font-weight: 700;
+            font-style: italic;
+            margin: 0;
+        }
+
+        .date-sub {
+            color: #666;
+            margin-top: 5px;
+            font-size: 0.95rem;
+        }
+
+        .btn-keluar {
+            background: #fff;
+            border: 1px solid #ccc;
+            padding: 6px 16px;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.85rem;
+        }
+
+        .filter-tags {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .tag-btn {
+            padding: 6px 18px;
+            border-radius: 20px;
+            border: none;
+            font-size: 0.85rem;
+            cursor: pointer;
+            font-weight: 500;
+        }
+        .tag-btn.active { background: #222; color: #fff; }
+        .tag-btn.acara { background: #a4c2be; color: #fff; }
+        .tag-btn.kerja { background: #cbb59d; color: #fff; }
+        .tag-btn.lomba { background: #c2b5cb; color: #fff; }
+        .tag-btn.lainnya { background: #b4be9d; color: #fff; }
+
+        .card {
+            background: #fff;
+            border-radius: 12px;
+            padding: 24px;
+            box-shadow: 0 4px 15px rgba(0,0,0,0.05);
+            border-left: 5px solid var(--journal-teal);
+            margin-top: 20px;
+        }
+
+        /* Floating Menu Buttons (Kanan Bawah) */
+        .floating-menu {
+            position: fixed;
+            bottom: 30px;
+            right: 30px;
+            display: flex;
+            flex-direction: column;
+            gap: 14px;
+            z-index: 100;
+        }
+
+        .fab-btn {
+            width: 58px;
+            height: 58px;
+            border-radius: 50%;
+            background-color: var(--accent-red);
+            color: white;
+            border: none;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 1.4rem;
+            box-shadow: 0 6px 16px rgba(0,0,0,0.2);
+            cursor: pointer;
+            transition: all 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+        }
+
+        .fab-btn:hover {
+            transform: scale(1.12) translateY(-2px);
+            box-shadow: 0 8px 20px rgba(0,0,0,0.3);
+        }
+
+        .fab-btn.journal-btn {
+            background-color: var(--journal-teal);
+        }
+
+        /* ================= MODAL & BUKU JURNAL CERAH REALISTIS ================= */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100vw;
+            height: 100vh;
+            background: rgba(30, 25, 20, 0.6);
+            backdrop-filter: blur(8px);
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 1000;
+            opacity: 0;
+            pointer-events: none;
+            transition: opacity 0.35s ease;
+        }
+
+        .modal-overlay.active {
+            opacity: 1;
+            pointer-events: auto;
+        }
+
+        .journal-modal-wrapper {
+            position: relative;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            transform: scale(0.9) translateY(20px);
+            transition: transform 0.35s cubic-bezier(0.175, 0.885, 0.32, 1.275);
+        }
+
+        .modal-overlay.active .journal-modal-wrapper {
+            transform: scale(1) translateY(0);
+        }
+
+        .close-modal-btn {
+            position: absolute;
+            top: -55px;
+            right: 0;
+            background: rgba(255, 255, 255, 0.9);
+            border: none;
+            color: #333;
+            width: 42px;
+            height: 42px;
+            border-radius: 50%;
+            font-size: 1.2rem;
+            cursor: pointer;
+            box-shadow: 0 4px 10px rgba(0,0,0,0.2);
+            transition: all 0.2s;
+        }
+
+        .close-modal-btn:hover {
+            background: #fff;
+            transform: rotate(90deg) scale(1.1);
+        }
+
+        /* Samsung Notes Toolbar Interaktif */
+        .notes-toolbar {
+            background: #ffffff;
+            border-radius: 30px;
+            padding: 8px 20px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            margin-bottom: 15px;
+            box-shadow: 0 8px 25px rgba(0,0,0,0.15);
+            flex-wrap: wrap;
+            justify-content: center;
+            z-index: 20;
+        }
+
+        .tool-group {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            border-right: 1px solid #eee;
+            padding-right: 12px;
+        }
+        .tool-group:last-child {
+            border-right: none;
+            padding-right: 0;
+        }
+
+        .tool-btn {
+            background: #f4f2eb;
+            border: none;
+            width: 36px;
+            height: 36px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            cursor: pointer;
+            color: #444;
+            transition: all 0.2s;
+            font-size: 0.9rem;
+        }
+
+        .tool-btn:hover, .tool-btn.active {
+            background: var(--journal-teal);
+            color: white;
+            transform: translateY(-2px);
+        }
+
+        .color-picker-dot {
+            width: 24px;
+            height: 24px;
+            border-radius: 50%;
+            cursor: pointer;
+            border: 2px solid white;
+            box-shadow: 0 0 4px rgba(0,0,0,0.3);
+        }
+
+        /* Container Alas Buku */
+        .book-container {
+            position: relative;
+            padding: 12px;
+            border-radius: 12px;
+            box-shadow: 
+                0 25px 60px -12px rgba(0,0,0,0.4),
+                0 12px 24px -6px rgba(0,0,0,0.22);
+            background: #2a2019; /* Bingkai hardcover luar */
+            /* Beri budget ukuran yang jelas & selalu proporsional 380:520,
+               dihitung dari vmin supaya pas di layar mana pun (potrait/landscape)
+               dan library flipbook (size:"stretch") tidak pernah kepotong/kosong */
+            width: min(92vw, 142vh, 960px);
+            aspect-ratio: 840 / 520;
+            display: flex;
+        }
+
+        #flipbook {
+            width: 100% !important;
+            height: 100% !important;
+        }
+
+        /* Saat buku masih tertutup (sampul depan): hilangkan sisi kiri kosong & center-kan sampul */
+        .book-container { transition: transform .5s ease, background .4s ease, box-shadow .4s ease; }
+        .book-container.is-closed-front {
+            background: transparent;
+            box-shadow: none;
+            transform: translateX(-25%);
+        }
+        .book-container.is-closed-front::after { opacity: 0; }
+        .book-container.is-closed-front #flipbook { filter: drop-shadow(0 25px 35px rgba(0,0,0,.45)); }
+
+        /* Lipatan Tengah (Spine Shadow Buku Terbuka) */
+        .book-container::after {
+            content: '';
+            position: absolute;
+            top: 12px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 32px;
+            height: calc(100% - 24px);
+            background: linear-gradient(to right, 
+                rgba(0,0,0,0) 0%, 
+                rgba(0,0,0,0.15) 45%, 
+                rgba(0,0,0,0.25) 50%, 
+                rgba(0,0,0,0.15) 55%, 
+                rgba(0,0,0,0) 100%);
+            z-index: 10;
+            pointer-events: none;
+        }
+
+        /* Styling Tiap Lembar Kertas */
+        .page {
+            background-color: #fcfaf2;
+            box-sizing: border-box;
+            border: 1px solid #e2dacd;
+            overflow: hidden;
+            position: relative;
+        }
+
+        .page-paper {
+            padding: 30px 25px;
+            width: 100%;
+            height: 100%;
+            box-sizing: border-box;
+            background-image: repeating-linear-gradient(
+                #fcfaf2 0px,
+                #fcfaf2 27px,
+                #e8e1d3 28px
+            );
+            display: flex;
+            flex-direction: column;
+            position: relative;
+            overflow: hidden; /* Cegah tulisan tumpah keluar batas kertas */
+        }
+
+        /* Canvas untuk Menggambar Coretan Tangan (Pen Canvas) */
+        .drawing-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            z-index: 5;
+            pointer-events: none; /* Aktif jika tool Pen dipilih */
+        }
+
+        .drawing-canvas.active {
+            pointer-events: auto;
+            cursor: crosshair;
+        }
+
+        /* Cover Hardcover Mewah */
+        .page.--cover {
+            background: linear-gradient(135deg, #2b3a39 0%, #172120 100%);
+            color: #e2c98d;
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            text-align: center;
+            border: 2px solid #101716;
+            box-shadow: inset 0 0 20px rgba(0,0,0,0.7);
+        }
+
+        .cover-content {
+            border: 2px solid #e2c98d;
+            padding: 35px 25px;
+            border-radius: 8px;
+            width: 75%;
+            box-sizing: border-box;
+            margin: auto; /* center di dalam sampul */
+        }
+
+        .cover-content h2 {
+            font-family: var(--font-serif);
+            font-size: 1.8rem;
+            letter-spacing: 3px;
+            margin: 10px 0;
+        }
+
+        /* Header Halaman Jurnal */
+        .page-header {
+            display: flex;
+            justify-content: space-between;
+            font-size: 0.8rem;
+            color: #888;
+            border-bottom: 2px solid var(--journal-teal);
+            padding-bottom: 5px;
+            margin-bottom: 15px;
+            font-weight: 600;
+        }
+
+        /* Editable Text Block (Samsung Notes Style) */
+        .editable-title {
+            font-family: var(--font-serif);
+            font-size: 1.35rem;
+            margin: 0 0 10px 0;
+            color: #1a1a1a;
+            outline: none;
+            border-bottom: 1px dashed transparent;
+            transition: border-color 0.2s;
+        }
+
+        .editable-title:focus, .editable-body:focus {
+            border-color: var(--journal-teal);
+            background: rgba(46, 105, 102, 0.03);
+        }
+
+        .editable-body {
+            font-family: var(--font-handwrite);
+            font-size: 1.5rem;
+            line-height: 28px; /* Sejajar dengan garis kertas */
+            color: #2b2b2b;
+            flex: 1 1 auto;   /* Mengisi sisa ruang halaman, bukan tinggi tetap */
+            min-height: 0;    /* Supaya flexbox tidak memaksa overflow */
+            max-height: 100%;
+            overflow-y: auto; /* Scroll di dalam area tulisan jika catatan panjang */
+            outline: none;
+            white-space: pre-wrap;
+        }
+
+        /* Sticker Stiker Dekorasi */
+        .sticker {
+            position: absolute;
+            font-size: 2rem;
+            cursor: move;
+            user-select: none;
+            z-index: 8;
+        }
+
+        /* Navigasi Control Buku & Export */
+        .flip-controls {
+            margin-top: 15px;
+            display: flex;
+            align-items: center;
+            gap: 12px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+
+        .nav-btn {
+            background: #ffffff;
+            border: none;
+            color: #333;
+            padding: 8px 18px;
+            border-radius: 30px;
+            cursor: pointer;
+            font-weight: 600;
+            font-size: 0.85rem;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.12);
+            transition: all 0.2s;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .nav-btn:hover {
+            background: var(--journal-teal);
+            color: #fff;
+            transform: translateY(-2px);
+        }
+
+        .add-page-btn {
+            background: var(--journal-teal);
+            color: #fff;
+        }
+        .add-page-btn:hover { background: #1f5550; }
+
+        /* Efek munculnya kertas baru */
+        @keyframes pageIn { from { opacity: 0; } to { opacity: 1; } }
+        .page.new-page .page-paper { animation: pageIn .6s ease; }
+
+        .export-btn {
+            background: #111;
+            color: #fff;
+        }
+        .export-btn:hover {
+            background: #333;
+        }
+
+        .share-btn {
+            background: #d62976; /* Warna khas Instagram */
+            color: white;
+        }
+        .share-btn:hover {
+            background: #962fbf;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="container">
+        <!-- Header Utama Website Agenda -->
+        <div class="header">
+            <div>
+                <h1 class="title">Agenda</h1>
+                <div class="date-sub">Sabtu, 12 September 2026</div>
+            </div>
+            <button class="btn-keluar">Keluar</button>
+        </div>
+
+        <!-- Filter Agenda -->
+        <div class="filter-tags">
+            <button class="tag-btn active">Semua</button>
+            <button class="tag-btn acara">Acara</button>
+            <button class="tag-btn kerja">Kerja</button>
+            <button class="tag-btn lomba">Lomba</button>
+            <button class="tag-btn lainnya">Lainnya</button>
+        </div>
+
+        <!-- Card Agenda -->
+        <div class="card">
+            <div style="display: flex; justify-content: space-between; align-items: center;">
+                <h3 style="margin: 0;">EVENT AMD DI FTME SEMINAR KAMPUS 1 UPN</h3>
+                <span style="background: var(--journal-teal); color: white; padding: 2px 8px; border-radius: 4px; font-size: 0.75rem;">ACARA</span>
+            </div>
+            <p style="color: #666; font-size: 0.85rem; margin: 8px 0 15px 0;">22 Sep • 11.45</p>
+            <p style="font-size: 0.9rem; line-height: 1.5; color: #444;">
+                Registrasi AMD Tech Gen di UPN "Veteran" Yogyakarta! Yuk, ikuti keseruan bersama AMD untuk menambah pengetahuan tentang teknologi!
+            </p>
+        </div>
+    </div>
+
+    <!-- Floating Buttons (Kanan Bawah) -->
+    <div class="floating-menu">
+        <button class="fab-btn journal-btn" id="openJournalBtn" title="Buka Journaling Session">
+            <i class="fa-solid fa-book-open"></i>
+        </button>
+        <button class="fab-btn" title="Tambah Agenda">
+            <i class="fa-solid fa-plus"></i>
+        </button>
+    </div>
+
+    <!-- MODAL POPUP DIGITAL JOURNAL FLIPBOOK -->
+    <div class="modal-overlay" id="journalModal">
+        <div class="journal-modal-wrapper">
+            <button class="close-modal-btn" id="closeJournalBtn"><i class="fa-solid fa-xmark"></i></button>
+            
+            <!-- Toolbar Pengeditan ala Samsung Notes -->
+            <div class="notes-toolbar">
+                <div class="tool-group">
+                    <button class="tool-btn active" id="textToolBtn" title="Mode Ketik Teks"><i class="fa-solid fa-font"></i></button>
+                    <button class="tool-btn" id="penToolBtn" title="Mode Coretan Tangan (Pen)"><i class="fa-solid fa-pen-nib"></i></button>
+                    <button class="tool-btn" id="eraserBtn" title="Hapus Coretan"><i class="fa-solid fa-eraser"></i></button>
+                </div>
+
+                <!-- Pilihan Warna Pena/Teks -->
+                <div class="tool-group">
+                    <div class="color-picker-dot" style="background: #2b2b2b;" data-color="#2b2b2b"></div>
+                    <div class="color-picker-dot" style="background: #c02626;" data-color="#c02626"></div>
+                    <div class="color-picker-dot" style="background: #2e6966;" data-color="#2e6966"></div>
+                    <div class="color-picker-dot" style="background: #2b529a;" data-color="#2b529a"></div>
+                </div>
+
+                <!-- Font Style -->
+                <div class="tool-group">
+                    <button class="tool-btn" id="fontHandwriteBtn" title="Tulisan Tangan (Caveat)" style="font-family: 'Caveat'; font-weight: bold;">Abc</button>
+                    <button class="tool-btn" id="fontSerifBtn" title="Font Klasik (Playfair)" style="font-family: 'Playfair Display';">Abc</button>
+                </div>
+
+                <!-- Stiker & Dekorasi -->
+                <div class="tool-group">
+                    <button class="tool-btn" id="addStickerHeart" title="Tambah Stiker Hati">❤️</button>
+                    <button class="tool-btn" id="addStickerStar" title="Tambah Stiker Bintang">⭐</button>
+                    <button class="tool-btn" id="addStickerCoffee" title="Tambah Stiker Kopi">☕</button>
+                </div>
+            </div>
+
+            <!-- Container Flipbook Buku Terbuka -->
+            <div class="book-container" id="printableJournal">
+                <div id="flipbook">
+                    
+                    <!-- Cover Depan -->
+                    <div class="page --cover" data-density="hard">
+                        <div class="cover-content">
+                            <i class="fa-solid fa-book-bookmark" style="font-size: 2.5rem; margin-bottom: 10px;"></i>
+                            <h2>DIGITAL JOURNAL</h2>
+                            <p style="font-size: 0.8rem; letter-spacing: 1px;">SAMSUNG NOTES EDITION</p>
+                        </div>
+                    </div>
+
+                    <!-- Halaman 1 -->
+                    <div class="page">
+                        <div class="page-paper">
+                            <canvas class="drawing-canvas"></canvas>
+                            <div class="page-header">
+                                <span>JOURNALING SESSION</span>
+                                <span>12 SEP 2026</span>
+                            </div>
+                            <h3 class="editable-title" contenteditable="true">Catatan Hari Ini</h3>
+                            <div class="editable-body" contenteditable="true">Klik di sini untuk mulai mengetik catatan seperti di Samsung Notes!
+
+Kamu bisa mencoret-coret dengan pen di atas kertas ini, mengubah warna tinta, serta menambahkan stiker lucu.</div>
+                        </div>
+                    </div>
+
+                    <!-- Halaman 2 -->
+                    <div class="page">
+                        <div class="page-paper">
+                            <canvas class="drawing-canvas"></canvas>
+                            <div class="page-header">
+                                <span>IDE & TARGET</span>
+                                <span>HALAMAN 02</span>
+                            </div>
+                            <h3 class="editable-title" contenteditable="true">My To-Do List</h3>
+                            <div class="editable-body" contenteditable="true">1. Menyelesaikan desain jurnal digital
+2. Menghadiri Seminar AMD di UPN
+3. Ekspor catatan ke PDF & bagikan ke Instagram Story!</div>
+                        </div>
+                    </div>
+
+                    <!-- Halaman 3 -->
+                    <div class="page">
+                        <div class="page-paper">
+                            <canvas class="drawing-canvas"></canvas>
+                            <div class="page-header">
+                                <span>REFLEKSI DIRI</span>
+                                <span>HALAMAN 03</span>
+                            </div>
+                            <h3 class="editable-title" contenteditable="true">Daily Mood & Thoughts</h3>
+                            <div class="editable-body" contenteditable="true">Tuliskan pemikiran dan perasaanmu di sini secara bebas...</div>
+                        </div>
+                    </div>
+
+                    <!-- Cover Belakang -->
+                    <div class="page --cover" data-density="hard">
+                        <div class="cover-content" style="border: none;">
+                            <h3 style="letter-spacing: 2px;">SELESAI</h3>
+                            <p style="font-size: 0.8rem;">Agenda Digital © 2026</p>
+                        </div>
+                    </div>
+
+                </div>
+            </div>
+
+            <!-- Tombol Navigasi Halaman, Export, & Share -->
+            <div class="flip-controls">
+                <button class="nav-btn" id="prevPageBtn"><i class="fa-solid fa-arrow-left"></i> Prev</button>
+                <button class="nav-btn" id="nextPageBtn">Next <i class="fa-solid fa-arrow-right"></i></button>
+                <button class="nav-btn add-page-btn" id="addPageBtn" title="Tambah kertas halaman baru"><i class="fa-solid fa-plus"></i> Halaman</button>
+                
+                <button class="nav-btn export-btn" id="exportPngBtn" title="Download Gambar PNG"><i class="fa-solid fa-image"></i> Export PNG</button>
+                <button class="nav-btn export-btn" id="exportPdfBtn" title="Download dokumen PDF"><i class="fa-solid fa-file-pdf"></i> Export PDF</button>
+                <button class="nav-btn share-btn" id="shareInstaBtn" title="Share ke Instagram / Medsos"><i class="fa-brands fa-instagram"></i> Share Medsos</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        let pageFlip;
+        let activeColor = '#2b2b2b';
+        let currentTool = 'text'; // 'text' or 'pen'
+
+        document.addEventListener('DOMContentLoaded', () => {
+            // 1. Inisialisasi Buku Terbuka 3D (StPageFlip)
+            pageFlip = new St.PageFlip(
+                document.getElementById("flipbook"),
+                {
+                    width: 420,          // Lebar per halaman
+                    height: 520,         // Tinggi per halaman
+                    size: "stretch",     // Buku menyesuaikan wadahnya
+                    minWidth: 300,
+                    maxWidth: 480,
+                    minHeight: 370,
+                    maxHeight: 594,
+                    maxShadowOpacity: 0.6,
+                    showCover: true,
+                    usePortrait: true,   // 1 halaman HANYA kalau layar sempit; layar normal tetap 2 halaman
+                    mobileScrollSupport: false
+                }
+            );
+
+            pageFlip.loadFromHTML(document.querySelectorAll("#flipbook .page"));
+
+            // Center-kan sampul depan saat buku tertutup
+            const bookBox = document.querySelector('.book-container');
+            const syncCover = () => bookBox.classList.toggle('is-closed-front', pageFlip.getCurrentPageIndex() === 0);
+            syncCover();
+            pageFlip.on('flip', () => { syncCover(); setTimeout(fitAllCanvases, 50); });
+            pageFlip.on('init', () => setTimeout(fitAllCanvases, 50));
+
+            // Prev & Next Controls
+            document.getElementById('prevPageBtn').addEventListener('click', () => pageFlip.flipPrev());
+            document.getElementById('nextPageBtn').addEventListener('click', () => pageFlip.flipNext());
+
+            // Tambah Kertas Halaman Baru (disisipkan sebelum sampul belakang)
+            document.getElementById('addPageBtn').addEventListener('click', () => {
+                if (pageFlip.getState() !== 'read') return; // tunggu animasi flip selesai
+                const items = Array.from(document.querySelectorAll('#flipbook .page'));
+                const interior = items.length - 2;           // tanpa sampul depan & belakang
+                const num = String(interior + 1).padStart(2, '0');
+
+                const page = document.createElement('div');
+                page.className = 'page new-page';
+                page.innerHTML = `
+                    <div class="page-paper">
+                        <canvas class="drawing-canvas${currentTool === 'pen' ? ' active' : ''}"></canvas>
+                        <div class="page-header">
+                            <span>CATATAN BARU</span>
+                            <span>HALAMAN ${num}</span>
+                        </div>
+                        <h3 class="editable-title" contenteditable="true">Judul Halaman</h3>
+                        <div class="editable-body" contenteditable="true">Tulis catatanmu di sini...</div>
+                    </div>`;
+
+                items.splice(items.length - 1, 0, page);      // sebelum sampul belakang
+                pageFlip.updateFromHtml(items);
+                setupCanvases();
+
+                // Pindah ke halaman baru
+                setTimeout(() => {
+                    fitAllCanvases();
+                    const idx = Array.from(document.querySelectorAll('#flipbook .page')).indexOf(page);
+                    pageFlip.flip(idx);
+                    setTimeout(fitAllCanvases, 1100);
+                }, 60);
+            });
+
+            // 2. Setup Drawing Canvas di Setiap Halaman
+            setupCanvases();
+        });
+
+        // Setup Fitur Menggambar / Coret-coret Tangan (Samsung Notes Style)
+        // Samakan resolusi canvas dengan ukuran kertas (coretan lama tetap dipertahankan)
+        function fitCanvas(canvas) {
+            const paper = canvas.parentElement;
+            const w = paper.clientWidth, h = paper.clientHeight;
+            if (!w || !h || (canvas.width === w && canvas.height === h)) return;
+            const keep = document.createElement('canvas');
+            keep.width = canvas.width; keep.height = canvas.height;
+            if (keep.width && keep.height) keep.getContext('2d').drawImage(canvas, 0, 0);
+            canvas.width = w; canvas.height = h;
+            if (keep.width && keep.height) canvas.getContext('2d').drawImage(keep, 0, 0, w, h);
+        }
+        const fitAllCanvases = () => document.querySelectorAll('.drawing-canvas').forEach(fitCanvas);
+        window.addEventListener('resize', () => setTimeout(fitAllCanvases, 150));
+
+        // Library flip menangkap semua klik di buku (dan memblok fokus teks / memicu tarikan halaman
+        // saat pen dipakai). Elemen interaktif dikecualikan supaya bisa diketik, dicoret, dan di-drag.
+        function shieldFromFlip(el) {
+            if (!el || el.dataset.shielded) return;
+            el.dataset.shielded = '1';
+            ['mousedown', 'touchstart'].forEach(ev => el.addEventListener(ev, e => e.stopPropagation()));
+        }
+
+        function setupCanvases() {
+            const pages = document.querySelectorAll('.page-paper');
+            pages.forEach(page => {
+                const canvas = page.querySelector('.drawing-canvas');
+                if (!canvas || canvas.dataset.ready) return; // jangan pasang listener dobel
+                canvas.dataset.ready = '1';
+                shieldFromFlip(canvas);
+                page.querySelectorAll('.editable-title, .editable-body').forEach(shieldFromFlip);
+
+                // Sesuaikan ukuran canvas dengan halaman
+                fitCanvas(canvas);
+
+                const ctx = canvas.getContext('2d');
+                let isDrawing = false;
+
+                function getCoords(e) {
+                    const rect = canvas.getBoundingClientRect();
+                    const clientX = e.touches ? e.touches[0].clientX : e.clientX;
+                    const clientY = e.touches ? e.touches[0].clientY : e.clientY;
+                    // Skala koordinat supaya coretan tepat di ujung pen walau ukuran buku berubah
+                    const sx = rect.width ? canvas.width / rect.width : 1;
+                    const sy = rect.height ? canvas.height / rect.height : 1;
+                    return {
+                        x: (clientX - rect.left) * sx,
+                        y: (clientY - rect.top) * sy
+                    };
+                }
+
+                function startDrawing(e) {
+                    if (currentTool !== 'pen') return;
+                    isDrawing = true;
+                    const pos = getCoords(e);
+                    ctx.beginPath();
+                    ctx.moveTo(pos.x, pos.y);
+                }
+
+                function draw(e) {
+                    if (!isDrawing || currentTool !== 'pen') return;
+                    const pos = getCoords(e);
+                    ctx.lineTo(pos.x, pos.y);
+                    ctx.strokeStyle = activeColor;
+                    ctx.lineWidth = 3;
+                    ctx.lineCap = 'round';
+                    ctx.stroke();
+                }
+
+                function stopDrawing() {
+                    isDrawing = false;
+                }
+
+                // Mouse Events
+                canvas.addEventListener('mousedown', startDrawing);
+                canvas.addEventListener('mousemove', draw);
+                canvas.addEventListener('mouseup', stopDrawing);
+
+                // Touch Events (Pen Stylus / HP)
+                canvas.addEventListener('touchstart', startDrawing);
+                canvas.addEventListener('touchmove', draw);
+                canvas.addEventListener('touchend', stopDrawing);
+            });
+        }
+
+        // Toggle Tools Toolbar
+        const textToolBtn = document.getElementById('textToolBtn');
+        const penToolBtn = document.getElementById('penToolBtn');
+        
+        textToolBtn.addEventListener('click', () => {
+            currentTool = 'text';
+            textToolBtn.classList.add('active');
+            penToolBtn.classList.remove('active');
+            document.querySelectorAll('.drawing-canvas').forEach(c => c.classList.remove('active'));
+        });
+
+        penToolBtn.addEventListener('click', () => {
+            currentTool = 'pen';
+            penToolBtn.classList.add('active');
+            textToolBtn.classList.remove('active');
+            document.querySelectorAll('.drawing-canvas').forEach(c => c.classList.add('active'));
+        });
+
+        // Hapus Coretan Canvas
+        document.getElementById('eraserBtn').addEventListener('click', () => {
+            const pageIndex = pageFlip.getCurrentPageIndex();
+            const allPages = document.querySelectorAll('#flipbook .page');
+            const currentPage = allPages[pageIndex];
+            if (currentPage) {
+                const canvas = currentPage.querySelector('.drawing-canvas');
+                if (canvas) {
+                    const ctx = canvas.getContext('2d');
+                    ctx.clearRect(0, 0, canvas.width, canvas.height);
+                }
+            }
+        });
+
+        // Ubah Warna Tinta / Teks
+        document.querySelectorAll('.color-picker-dot').forEach(dot => {
+            dot.addEventListener('click', (e) => {
+                activeColor = e.target.getAttribute('data-color');
+                document.activeElement.style.color = activeColor;
+            });
+        });
+
+        // Ganti Font
+        document.getElementById('fontHandwriteBtn').addEventListener('click', () => {
+            if (document.activeElement.classList.contains('editable-body')) {
+                document.activeElement.style.fontFamily = "'Caveat', cursive";
+            }
+        });
+
+        document.getElementById('fontSerifBtn').addEventListener('click', () => {
+            if (document.activeElement.classList.contains('editable-body')) {
+                document.activeElement.style.fontFamily = "'Playfair Display', serif";
+            }
+        });
+
+        // Tambah Stiker Emoji Lucu
+        function addSticker(emoji) {
+            const pageIndex = pageFlip.getCurrentPageIndex();
+            const allPages = document.querySelectorAll('#flipbook .page');
+            const currentPage = allPages[pageIndex];
+            if (!currentPage) return;
+
+            const paper = currentPage.querySelector('.page-paper');
+            if (!paper) return;
+
+            const sticker = document.createElement('div');
+            sticker.className = 'sticker';
+            shieldFromFlip(sticker);
+            sticker.innerText = emoji;
+            sticker.style.top = '100px';
+            sticker.style.left = '100px';
+
+            // Fitur Drag Stiker
+            let isDragging = false;
+            sticker.addEventListener('mousedown', (e) => {
+                isDragging = true;
+                let shiftX = e.clientX - sticker.getBoundingClientRect().left;
+                let shiftY = e.clientY - sticker.getBoundingClientRect().top;
+
+                function moveAt(pageX, pageY) {
+                    const paperRect = paper.getBoundingClientRect();
+                    sticker.style.left = pageX - paperRect.left - shiftX + 'px';
+                    sticker.style.top = pageY - paperRect.top - shiftY + 'px';
+                }
+
+                function onMouseMove(event) {
+                    if (isDragging) moveAt(event.pageX, event.pageY);
+                }
+
+                document.addEventListener('mousemove', onMouseMove);
+                sticker.onmouseup = function() {
+                    isDragging = false;
+                    document.removeEventListener('mousemove', onMouseMove);
+                };
+            });
+
+            paper.appendChild(sticker);
+        }
+
+        document.getElementById('addStickerHeart').addEventListener('click', () => addSticker('❤️'));
+        document.getElementById('addStickerStar').addEventListener('click', () => addSticker('⭐'));
+        document.getElementById('addStickerCoffee').addEventListener('click', () => addSticker('☕'));
+
+        // ================= EKSPORT PDF, PNG, DAN SHARE MEDSOS =================
+        // Export PNG
+        document.getElementById('exportPngBtn').addEventListener('click', () => {
+            const bookTarget = document.getElementById('printableJournal');
+            html2canvas(bookTarget, { scale: 2 }).then(canvas => {
+                const link = document.createElement('a');
+                link.download = 'Digital-Journal-Entry.png';
+                link.href = canvas.toDataURL('image/png');
+                link.click();
+            });
+        });
+
+        // Export PDF
+        document.getElementById('exportPdfBtn').addEventListener('click', () => {
+            const { jsPDF } = window.jspdf;
+            const bookTarget = document.getElementById('printableJournal');
+
+            html2canvas(bookTarget, { scale: 2 }).then(canvas => {
+                const imgData = canvas.toDataURL('image/jpeg', 0.95);
+                const pdf = new jsPDF('landscape', 'px', [canvas.width, canvas.height]);
+                pdf.addImage(imgData, 'JPEG', 0, 0, canvas.width, canvas.height);
+                pdf.save('My-Digital-Journal.pdf');
+            });
+        });
+
+        // Share ke Instagram / Medsos
+        document.getElementById('shareInstaBtn').addEventListener('click', async () => {
+            const bookTarget = document.getElementById('printableJournal');
+            const canvas = await html2canvas(bookTarget, { scale: 2 });
+            
+            canvas.toBlob(async (blob) => {
+                const file = new File([blob], 'journal-story.png', { type: 'image/png' });
+                
+                // Gunakan Web Share API jika didukung browser HP
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    try {
+                        await navigator.share({
+                            title: 'Digital Journal Saya',
+                            text: 'Lihat catatan jurnal digital saya hari ini!',
+                            files: [file]
+                        });
+                    } catch (err) {
+                        console.log('User menolak share:', err);
+                    }
+                } else {
+                    // Fallback jika dibuka di browser PC / tidak support Web Share API
+                    const link = document.createElement('a');
+                    link.download = 'journal-for-instagram.png';
+                    link.href = canvas.toDataURL('image/png');
+                    link.click();
+                    alert('Gambar jurnal telah terdownload! Kamu sekarang bisa langsung upload file gambar ini ke Instagram Story atau WhatsApp Status.');
+                }
+            });
+        });
+
+        // Kontrol Popup Modal Jurnal
+        const journalModal = document.getElementById('journalModal');
+        const openJournalBtn = document.getElementById('openJournalBtn');
+        const closeJournalBtn = document.getElementById('closeJournalBtn');
+
+        openJournalBtn.addEventListener('click', () => journalModal.classList.add('active'));
+        closeJournalBtn.addEventListener('click', () => journalModal.classList.remove('active'));
+
+        journalModal.addEventListener('click', (e) => {
+            if (e.target === journalModal) journalModal.classList.remove('active');
+        });
+    </script>
+</body>
+</html>

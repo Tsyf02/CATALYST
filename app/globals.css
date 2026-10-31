@@ -1,0 +1,41 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* ── Light mode tokens ── */
+:root {
+  --color-paper: #f7f4ec;
+  --color-paperline: #e4dfd0;
+  --color-ink: #23262b;
+  --color-inksoft: #63687a;
+  --color-cardbg: #fffdf8;
+}
+
+/* ── Dark mode tokens ── */
+.dark {
+  --color-paper: #1a1b1e;
+  --color-paperline: #2e3038;
+  --color-ink: #e8e6e0;
+  --color-inksoft: #9a9dab;
+  --color-cardbg: #24262b;
+}
+
+html,
+body {
+  background-color: var(--color-paper);
+  color: var(--color-ink);
+  transition: background-color 0.2s, color 0.2s;
+}
+
+* {
+  -webkit-tap-highlight-color: transparent;
+}
+
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-paperline);
+  border-radius: 3px;
+}

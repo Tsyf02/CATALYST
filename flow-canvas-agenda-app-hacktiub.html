@@ -1,0 +1,188 @@
+
+<html lang="id">
+<head>
+<meta charset="UTF-8" />
+<title>Flow Canvas — Agenda App</title>
+<style>
+  * { margin:0; padding:0; box-sizing:border-box; }
+  body { background:#0f1117; font-family:'Segoe UI',sans-serif; min-height:100vh; padding:24px; }
+  .canvas { background:#141820; border:1.5px solid #2a2d3a; border-radius:16px; padding:32px 28px 28px; position:relative; min-height:680px; }
+  .identity { background:#1e2130; border:2px solid #f5c518; border-radius:10px; padding:14px 18px; width:200px; position:absolute; top:28px; left:28px; }
+  .identity .name { color:#f5c518; font-weight:700; font-size:13.5px; line-height:1.3; }
+  .identity .nim  { color:#aaa; font-size:10.5px; margin-top:3px; }
+  .identity .prodi { color:#ccc; font-size:10.5px; margin-top:2px; line-height:1.4; }
+  .identity .univ { color:#7eb8f7; font-size:11px; font-weight:600; margin-top:5px; border-top:1px solid #2a2d3a; padding-top:5px; }
+  .app-title { background:#3b3bdb; border-radius:12px; padding:14px 22px; color:#fff; font-weight:800; font-size:17px; text-align:center; position:absolute; top:28px; left:50%; transform:translateX(-50%); width:210px; }
+  .app-title .sub { font-size:10.5px; font-weight:400; opacity:.8; margin-top:3px; }
+  .node { position:absolute; background:#1e2130; border:1.5px solid #2e3347; border-radius:10px; padding:11px 14px; }
+  .node .label { font-size:11.5px; font-weight:700; color:#e0e0e0; margin-bottom:4px; }
+  .node .desc  { font-size:10px; color:#888; line-height:1.5; }
+  .badge { display:inline-block; font-size:9.5px; font-weight:700; padding:2px 7px; border-radius:20px; margin-top:5px; }
+  .badge-blue   { background:#1a3a5c; color:#7eb8f7; }
+  .badge-green  { background:#1a3a1a; color:#6fcf97; }
+  .badge-purple { background:#2d1a5c; color:#bb8aff; }
+  .badge-orange { background:#3a2a10; color:#f5a623; }
+  .badge-teal   { background:#0d2e2e; color:#56cfe1; }
+  .n-auth     { top:110px; left:28px; width:195px; }
+  .n-db       { top:110px; right:28px; width:190px; }
+  .n-dash     { top:240px; left:28px; width:185px; }
+  .n-agenda   { top:240px; left:50%; transform:translateX(-50%); width:185px; }
+  .n-notebook { top:240px; right:28px; width:185px; }
+  .n-ai       { top:400px; left:28px; width:185px; }
+  .n-parse    { top:400px; left:50%; transform:translateX(-50%); width:185px; }
+  .n-settings { top:400px; right:28px; width:185px; }
+  .section-label { position:absolute; font-size:9px; font-weight:700; letter-spacing:.08em; text-transform:uppercase; color:#555; }
+  .hacktiub { position:absolute; top:22px; right:28px; background:#cc2200; color:#fff; font-weight:800; font-size:13px; padding:6px 14px; border-radius:8px; letter-spacing:.05em; }
+  .tech-row { position:absolute; bottom:18px; left:50%; transform:translateX(-50%); display:flex; gap:7px; flex-wrap:wrap; justify-content:center; width:90%; }
+  .tech-chip { background:#1e2130; border:1px solid #2e3347; border-radius:20px; padding:3px 10px; font-size:10px; color:#aaa; font-weight:600; white-space:nowrap; }
+  .connector { position:absolute; background:#2a2d3a; border-radius:2px; }
+  .connector.v { width:2px; }
+  .connector.h { height:2px; }
+  .arrow-tip { position:absolute; width:0; height:0; }
+  .arrow-tip.down  { border-left:5px solid transparent; border-right:5px solid transparent; border-top:7px solid #3b5bdb; }
+  .arrow-tip.right { border-top:5px solid transparent; border-bottom:5px solid transparent; border-left:7px solid #3b5bdb; }
+</style>
+</head>
+<body>
+<div class="canvas">
+
+  
+  <div class="identity">
+    <div class="name">Talitha Syifa Al Fath</div>
+    <div class="nim">NIM 124250173</div>
+    <div class="prodi">Sistem Informasi</div>
+    <div class="univ">UPN "Veteran" Yogyakarta</div>
+  </div>
+
+  
+  <div class="hacktiub">🦊 HACKTIUB</div>
+
+  
+  <div class="app-title">
+    📒 Agenda App
+    <div class="sub">Personal Agenda &amp; Productivity</div>
+  </div>
+
+  
+  <div class="section-label" style="top:96px;left:28px">— Auth &amp; Security</div>
+  <div class="section-label" style="top:96px;right:28px">— Storage</div>
+  <div class="section-label" style="top:226px;left:28px">— Core Features</div>
+  <div class="section-label" style="top:386px;left:28px">— AI &amp; Settings</div>
+
+  
+  <div class="node n-auth">
+    <div class="label">🔐 Auth (NextAuth)</div>
+    <div class="desc">Login email + password dengan session JWT. Route protection via proxy middleware.</div>
+    <span class="badge badge-blue">next-auth v4</span>
+  </div>
+
+  
+  <div class="node n-db">
+    <div class="label">🗄️ Database (Vercel KV)</div>
+    <div class="desc">Simpan agenda, task, notes, habits, notebook via Redis KV. Fallback in-memory saat dev.</div>
+    <span class="badge badge-orange">@vercel/kv</span>
+  </div>
+
+  
+  <div class="node n-dash">
+    <div class="label">🏠 Dashboard</div>
+    <div class="desc">Statistik harian, agenda 3 hari ke depan, task, habit tracker, catatan cepat.</div>
+    <span class="badge badge-green">DashboardClient</span>
+  </div>
+
+  
+  <div class="node n-agenda">
+    <div class="label">📅 Agenda</div>
+    <div class="desc">Jadwal acara/lomba/kerja. List &amp; calendar view, countdown, foto &amp; voice note, export .ics.</div>
+    <span class="badge badge-teal">AgendaClient</span>
+  </div>
+
+  
+  <div class="node n-notebook">
+    <div class="label">📒 Notebook</div>
+    <div class="desc">Buku catatan digital, halaman bisa dibolak-balik, warna halaman, garis buku tulis.</div>
+    <span class="badge badge-purple">NotebookClient</span>
+  </div>
+
+  
+  <div class="node n-ai">
+    <div class="label">🤖 AI Chatbot</div>
+    <div class="desc">Tanya jadwal via chat. Groq API (llama-3.1-8b). Konteks data user real-time dari database.</div>
+    <span class="badge badge-purple">Groq / OpenAI SDK</span>
+  </div>
+
+  
+  <div class="node n-parse">
+    <div class="label">📋 Parse Pengumuman</div>
+    <div class="desc">Paste teks pengumuman → AI ubah jadi jadwal terstruktur + JSON langsung tambah ke Agenda.</div>
+    <span class="badge badge-teal">mode: parse</span>
+  </div>
+
+  
+  <div class="node n-settings">
+    <div class="label">⚙️ Dark Mode &amp; i18n</div>
+    <div class="desc">Toggle night mode (next-themes) + bahasa ID/EN. Preferensi tersimpan di localStorage.</div>
+    <span class="badge badge-orange">next-themes · i18n</span>
+  </div>
+
+  
+  <svg xmlns="http://www.w3.org/2000/svg" style="position:absolute;top:0;left:0;width:100%;height:680px;pointer-events:none">
+    <defs>
+      <marker id="mBlue">
+        <path d="M0,0 L0,6 L7,3 z" fill="#3b5bdb" opacity=".9"></path>
+      </marker>
+      <marker id="mGreen">
+        <path d="M0,0 L0,6 L7,3 z" fill="#6fcf97" opacity=".9"></path>
+      </marker>
+      <marker id="mOrange">
+        <path d="M0,0 L0,6 L7,3 z" fill="#f5a623" opacity=".9"></path>
+      </marker>
+      <marker id="mPurple">
+        <path d="M0,0 L0,6 L7,3 z" fill="#bb8aff" opacity=".9"></path>
+      </marker>
+    </defs>
+
+    
+    <path d="M 330 72 C 280 72 220 90 215 110" stroke="#3b5bdb" stroke-width="1.8" fill="none" marker-end="url(#mBlue)" opacity=".8"></path>
+    
+    <path d="M 450 72 C 500 72 540 90 545 110" stroke="#3b5bdb" stroke-width="1.8" fill="none" marker-end="url(#mBlue)" opacity=".8"></path>
+
+    
+    <path d="M 125 178 L 125 240" stroke="#6fcf97" stroke-width="1.8" fill="none" marker-end="url(#mGreen)" opacity=".85"></path>
+    
+    <path d="M 390 88 L 390 240" stroke="#6fcf97" stroke-width="1.8" fill="none" marker-end="url(#mGreen)" opacity=".85"></path>
+    
+    <path d="M 450 78 C 510 80 555 160 555 240" stroke="#6fcf97" stroke-width="1.8" fill="none" marker-end="url(#mGreen)" opacity=".85"></path>
+
+    
+    <path d="M 540 178 C 540 200 210 205 210 240" stroke="#f5a623" stroke-width="1.5" fill="none" marker-end="url(#mOrange)" opacity=".6"></path>
+    <path d="M 540 178 C 540 205 450 215 430 240" stroke="#f5a623" stroke-width="1.5" fill="none" marker-end="url(#mOrange)" opacity=".6"></path>
+    <path d="M 545 178 L 545 240" stroke="#f5a623" stroke-width="1.5" fill="none" marker-end="url(#mOrange)" opacity=".6"></path>
+
+    
+    <path d="M 125 320 L 125 400" stroke="#bb8aff" stroke-width="1.8" fill="none" marker-end="url(#mPurple)" opacity=".85"></path>
+    <path d="M 390 320 L 390 400" stroke="#bb8aff" stroke-width="1.8" fill="none" marker-end="url(#mPurple)" opacity=".85"></path>
+    <path d="M 555 320 L 555 400" stroke="#bb8aff" stroke-width="1.8" fill="none" marker-end="url(#mPurple)" opacity=".85"></path>
+
+    
+    <path d="M 215 445 L 295 445" stroke="#3b5bdb" stroke-width="1.6" fill="none" marker-end="url(#mBlue)" opacity=".7"></path>
+    <path d="M 480 445 L 492 445" stroke="#3b5bdb" stroke-width="1.6" fill="none" marker-end="url(#mBlue)" opacity=".7"></path>
+  </svg>
+
+  
+  <div class="tech-row">
+    <span class="tech-chip">Next.js 16</span>
+    <span class="tech-chip">TypeScript</span>
+    <span class="tech-chip">Tailwind CSS</span>
+    <span class="tech-chip">NextAuth v4</span>
+    <span class="tech-chip">Vercel KV</span>
+    <span class="tech-chip">Groq AI (llama-3.1)</span>
+    <span class="tech-chip">next-themes</span>
+    <span class="tech-chip">openai SDK</span>
+  </div>
+
+</div>
+
+<p style="color:#444;font-size:11px;text-align:center;margin-top:10px;border-top:1px solid #1e2130;padding-top:10px">Made with IBM Bob</p>
+</body>
+</html>
